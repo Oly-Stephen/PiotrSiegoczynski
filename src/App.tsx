@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import AppointmentForm from './components/AppointmentForm';
 
@@ -7,6 +7,71 @@ const image2 = '/images/image2.png';
 
 function App() {
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Refs for sections to be animated
+  const aboutRef = useRef<HTMLElement>(null);
+  const servicesRef = useRef<HTMLElement>(null);
+  const statsRef = useRef<HTMLElement>(null);
+  const storyRef = useRef<HTMLElement>(null);
+  const contactRef = useRef<HTMLElement>(null);
+
+  // Handle scroll effect for header
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // Setup intersection observer for animations
+  useEffect(() => {
+    const animatedElements = document.querySelectorAll('.fade-in');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+    
+    animatedElements.forEach(element => {
+      observer.observe(element);
+    });
+    
+    return () => {
+      animatedElements.forEach(element => {
+        observer.unobserve(element);
+      });
+    };
+  }, []);
+
+  // Smooth scroll for navigation links
+  const handleNavClick = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    event.preventDefault();
+    setIsMenuOpen(false);
+    
+    const element = document.getElementById(id);
+    if (element) {
+      const headerHeight = document.querySelector('header')?.offsetHeight || 0;
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - headerHeight;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const heroStyle = {
     backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)), url(${heroBg})`
@@ -18,14 +83,23 @@ function App() {
 
   return (
     <div className="App">
-      <header>
+      <header className={isScrolled ? 'scrolled' : ''}>
         <div className="header-logo">PIOTR S.</div>
-        <nav className="main-nav">
-          <a href="#hero" className="nav-link">Homepage</a>
-          <a href="#about" className="nav-link">O Mnie</a>
-          <a href="#services" className="nav-link">Wartości</a>
+        
+        <div className={`mobile-menu-button ${isMenuOpen ? 'open' : ''}`} onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        
+        <nav className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
+          <a href="#hero" className="nav-link" onClick={(e) => handleNavClick(e, 'hero')}>Homepage</a>
+          <a href="#about" className="nav-link" onClick={(e) => handleNavClick(e, 'about')}>O Mnie</a>
+          <a href="#services" className="nav-link" onClick={(e) => handleNavClick(e, 'services')}>Wartości</a>
+          <a href="#contact" className="join-button-mobile" onClick={(e) => handleNavClick(e, 'contact')}>Kontakt</a>
         </nav>
-        <a href="#contact" className="join-button">Kontakt</a>
+        
+        <a href="#contact" className="join-button desktop-only" onClick={(e) => handleNavClick(e, 'contact')}>Kontakt</a>
       </header>
 
       <main>
@@ -53,8 +127,8 @@ function App() {
           </div>
         </section>
 
-        <section id="about" className="content-section">
-          <div className="content-text">
+        <section id="about" ref={aboutRef} className="content-section">
+          <div className="content-text fade-in">
             <h2>Moja droga do mistrzostwa</h2>
             <p>
               Rozpocząłem swoją karierę sportową w latach 80-tych, a pierwsze sukcesy przyszły szybko - zarówno na arenie krajowej, jak i międzynarodowej. Na przestrzeni lat zdobyłem tytuły mistrza Polski, Europy i świata w kickboxingu.
@@ -62,9 +136,16 @@ function App() {
             <p>
               Dziś, oprócz własnego treningu, dzielę się swoim doświadczeniem z innymi - jako trener, mentor i ambasador zdrowego stylu życia. Uczę nie tylko technik walki, ale także odwagi, pokory i konsekwencji.
             </p>
-            <button className="button-style">Poznaj Moją Historię</button>
+            <a 
+              href="https://pl.wikipedia.org/wiki/Piotr_Siegoczy%C5%84ski" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="button-style"
+            >
+              Poznaj Moją Historię
+            </a>
           </div>
-          <div className="content-video-container">
+          <div className="content-video-container fade-in fade-in-delay-1">
             <iframe
               width="100%"
               height="100%"
@@ -77,43 +158,50 @@ function App() {
           </div>
         </section>
 
-        <section id="services" className="warriors-section">
-          <div className="warriors-image" style={warriorsImageStyle} />
-          <div className="warriors-content">
+        <section id="services" ref={servicesRef} className="warriors-section">
+          <div className="warriors-image fade-in" style={warriorsImageStyle} />
+          <div className="warriors-content fade-in fade-in-delay-1">
             <p className="subtitle">WARTOŚCI</p>
             <h2>Wojownicy Piotra: Przekraczając Granice, Osiągając Zwycięstwo!</h2>
             <p>Wierzę, że prawdziwa siła pochodzi z dyscypliny, determinacji i nieustannego dążenia do doskonałości. Moje motto to nie tylko słowa, to filozofia życia i treningu.</p>
             <ul className="icon-list">
-              <li><span>👁️</span> <strong>Wizja:</strong> Inspirować i kształtować kolejne pokolenia mistrzów.</li>
-              <li><span>🎯</span> <strong>Misja:</strong> Dostarczać najwyższej jakości trening, budując siłę fizyczną i mentalną.</li>
-              <li><span>❤️</span> <strong>Motto:</strong> Trenuj ciężej, walcz mądrzej, nigdy się nie poddawaj.</li>
+              <li className="fade-in fade-in-delay-1"><span>👁️</span> <strong>Wizja:</strong> Inspirować i kształtować kolejne pokolenia mistrzów.</li>
+              <li className="fade-in fade-in-delay-2"><span>🎯</span> <strong>Misja:</strong> Dostarczać najwyższej jakości trening, budując siłę fizyczną i mentalną.</li>
+              <li className="fade-in fade-in-delay-3"><span>❤️</span> <strong>Motto:</strong> Trenuj ciężej, walcz mądrzej, nigdy się nie poddawaj.</li>
             </ul>
           </div>
         </section>
 
-        <section id="stats" className="stats-bar">
-          <div className="stat-item">
+        <section id="stats" ref={statsRef} className="stats-bar">
+          <div className="stat-item fade-in">
             <span className="stat-number">10+</span>
             <span className="stat-label">Tytułów Mistrza Świata</span>
           </div>
-          <div className="stat-item">
+          <div className="stat-item fade-in fade-in-delay-1">
             <span className="stat-number">30+</span>
             <span className="stat-label">Lat Doświadczenia</span>
           </div>
-          <div className="stat-item">
+          <div className="stat-item fade-in fade-in-delay-2">
             <span className="stat-number">1000+</span>
             <span className="stat-label">Wyszkolonych Zawodników</span>
           </div>
-          <div className="stat-item">
+          <div className="stat-item fade-in fade-in-delay-3">
             <span className="stat-number">24/7</span>
             <span className="stat-label">Pasja i Zaangażowanie</span>
           </div>
         </section>
 
-        <section id="story" className="learn-story">
-           <h2>Moja Droga Do Mistrzostwa</h2>
-           <p>Zapraszam Cię do świata sportu, gdzie pokonywanie własnych ograniczeń staje się codziennością. Odkryj historię pasji, determinacji i sukcesu.</p>
-           <button className="button-style">Czytaj Dalej</button>
+        <section id="story" ref={storyRef} className="learn-story">
+           <h2 className="fade-in">Moja Droga Do Mistrzostwa</h2>
+           <p className="fade-in fade-in-delay-1">Zapraszam Cię do świata sportu, gdzie pokonywanie własnych ograniczeń staje się codziennością. Odkryj historię pasji, determinacji i sukcesu.</p>
+           <a 
+              href="http://kickcenter.pl/zawodnicy/piotr-siegoczynski/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="button-style fade-in fade-in-delay-2"
+            >
+              Czytaj Dalej
+            </a>
         </section>
 
         <section id="training" className="cta">
@@ -127,21 +215,24 @@ function App() {
           </button>
         </section>
 
-        <section id="contact" className="contact-section">
-          <h2>Skontaktuj się ze mną</h2>
-          <p>Masz pytania? Chcesz zaprosić mnie na wydarzenie, przeprowadzić trening lub nawiązać współpracę?</p>
+        <section id="contact" ref={contactRef} className="contact-section">
+          <h2 className="fade-in">Kontakt</h2>
+          <p className="fade-in fade-in-delay-1">Skontaktuj się ze mną w sprawie treningów, współpracy lub wydarzeń</p>
           <div className="contact-info">
-            <div className="contact-item">
+            <div className="contact-item fade-in fade-in-delay-1">
               <span className="contact-icon">📩</span>
-              <p>Email: <a href="mailto:kontakt@piotrsiegoczynski.pl">kontakt@piotrsiegoczynski.pl</a></p>
+              <h3>Email</h3>
+              <p><a href="mailto:kontakt@piotrsiegoczynski.pl">kontakt@piotrsiegoczynski.pl</a></p>
             </div>
-            <div className="contact-item">
+            <div className="contact-item fade-in fade-in-delay-2">
               <span className="contact-icon">📱</span>
-              <p>Telefon: <a href="tel:+48123456789">+48 123 456 789</a></p>
+              <h3>Telefon</h3>
+              <p><a href="tel:+48123456789">+48 123 456 789</a></p>
             </div>
-            <div className="contact-item">
+            <div className="contact-item fade-in fade-in-delay-3">
               <span className="contact-icon">📍</span>
-              <p>Warszawa</p>
+              <h3>Lokalizacja</h3>
+              <p>Warszawa, Polska</p>
             </div>
           </div>
         </section>
